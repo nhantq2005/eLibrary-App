@@ -1,5 +1,5 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { View, Text, Image, TouchableOpacity, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { Button, TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +7,10 @@ import styles from '../../styles/LoginStyles';
 import Spacer from "../../components/Spacer";
 import { Theme } from "../../styles/Theme";
 import OutlineTextInput from "../../components/OutlineTextInput";
-import Apis, { endpoints } from "../../utils/Apis";
+import Apis, { authApis, endpoints } from "../../utils/Apis";
+import { useNavigation } from "@react-navigation/native";
+import { AsyncStorage } from "react-native";
+import { MyUserContext } from "../../utils/MyContexts";
 
 
 
@@ -17,6 +20,8 @@ const Login = () => {
     const [isShowPassword, setIsShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [, dispatch] = useContext(MyUserContext);
+    const nav = useNavigation();
 
     const isValidate = () => {
         if (username.trim() === '') {
@@ -39,6 +44,15 @@ const Login = () => {
                     { username: username, password: password }
                 );
                 console.log(res.data);
+                if (res.status === 200) {
+                    nav.navigate('TabNavigation'); 
+                    AsyncStorage.setItem('token', res.data.token);
+                    let userRes = await authApis(res.data.token).get(endpoints['profile']);
+                    dispatch({ 
+                        type: 'login', 
+                        payload: userRes.data
+                    });
+                }
             } catch (err) {
                 if(err.response && err.response.status === 401) {
                     setError('Tên đăng nhập hoặc mật khẩu không đúng');
@@ -102,7 +116,7 @@ const Login = () => {
                         <Spacer height={20} />
                         <Text style={{ textAlign: 'center', color: Theme.colors.onSurfaceVariant }}>Hoặc</Text>
                         <Spacer height={20} />
-                        <TouchableOpacity onPress={() => console.log('Pressed')}
+                        <TouchableOpacity onPress={() => nav.navigate('Register')}
                             style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -123,7 +137,7 @@ const Login = () => {
                     </View>
                     <View style={styles.footerRow}>
                         <Text>Bạn chưa có tài khoản? </Text>
-                        <TouchableOpacity onPress={() => console.log('Pressed')}>
+                        <TouchableOpacity onPress={() => nav.navigate('Register')}>
                             <Text style={styles.linkText}>Đăng ký</Text>
                         </TouchableOpacity>
                     </View>
