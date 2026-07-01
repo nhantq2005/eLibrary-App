@@ -1,21 +1,5 @@
-import axios from "axios";
+import {createContext} from "react";
 
-const BASE_URL = '';
-
-export const endpoints = {
-    
-};
-
-
-export const authApis = (token) => {
-    return axios.create({
-        baseURL: BASE_URL,
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-};
-
-export default axios.create({
-    baseURL: BASE_URL
-});
+export const MyUserContext = createContext();
+export const MyBuyCartContext = createContext();
+export const MyBorrowCartContext = createContext();
