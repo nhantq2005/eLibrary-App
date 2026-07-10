@@ -1,14 +1,20 @@
-import { useEffect, useReducer } from "react";
-import { MyBuyCartContext } from "../MyContexts";
+import { useContext, useEffect, useReducer } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MyBuyCartContext, MyUserContext } from "../MyContexts";
+import MyBuyCartReducer from "../reducers/MyBuyCartReducer";
 
-export const MyCartProvider = ({ children }) => {
-  const [cart, dispatch] = useReducer(MyCartReducer, []);
+export const MyBuyCartProvider = ({ children }) => {
+  const [cart, dispatch] = useReducer(MyBuyCartReducer, []);
+  const [user] = useContext(MyUserContext);
+  const userId = user?.id;
 
   useEffect(() => {
     const loadBuyCart = async () => {
+      if (!userId) return;
       try {
-        const buyCartData = await AsyncStorage.getItem(`cartBuy_${userId}`);
+        const buyCartData = await AsyncStorage.getItem(`cart_buy`);
         if (buyCartData) {
+          // Parse data và đẩy payload cho reducer
           dispatch({ type: "UPDATE", payload: JSON.parse(buyCartData) });
         }
       } catch (e) {
@@ -16,18 +22,20 @@ export const MyCartProvider = ({ children }) => {
       }
     };
     loadBuyCart();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const saveBuyCart = async () => {
-      if (cart) {
-        await AsyncStorage.setItem(`cartBuy_${userId}`, JSON.stringify(cart));
+      if (!userId) return;
+      // Lưu toàn bộ object giỏ hàng vào storage
+      if (cart && Object.keys(cart).length > 0) {
+        await AsyncStorage.setItem(`cart_buy`, JSON.stringify(cart));
       } else {
-        await AsyncStorage.removeItem(`cartBuy_${userId}`);
+        await AsyncStorage.removeItem(`cart_buy`);
       }
     };
     saveBuyCart();
-  }, [cart]);
+  }, [cart, userId]);
 
   return(
     <MyBuyCartContext.Provider value={[cart, dispatch]}>
