@@ -1,36 +1,91 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
-
-const dummyBorrowData = [
-    {
-        id: '1',
-        title: 'The Great Gatsby',
-        author: 'F. Scott Fitzgerald',
-        image: 'https://picsum.photos/200/300?random=1',
-        duration: '14 ngày',
-    },
-    {
-        id: '2',
-        title: 'Nhà Giả Kim',
-        author: 'Paulo Coelho',
-        image: 'https://picsum.photos/200/300?random=2',
-        duration: '7 ngày',
-    }
-];
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MyBorrowCartContext } from '../../utils/MyContexts';
+import { normalizeCart } from '../../utils/Utils';
+import { authApis, endpoints } from '../../utils/Apis';
 
 const CartBorrow = () => {
+    const [borrow, setBorrow] = useContext(MyBorrowCartContext);
+    const [borrowCart, setBorrowCart] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (borrow) {
+            setBorrowCart(normalizeCart(borrow));
+        }
+        setLoading(false);
+    }, [borrow]);
+
+    const borrowBooks = async () => {
+        if (borrowCart.length === 0) {
+            Alert.alert('Thông báo', 'Giỏ mượn đang trống.');
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+
+            const cartData = borrowCart.map(item => ({
+                docId: Number(item.id),
+                quantity: Number(item.quantity || 1),
+            }));
+
+            const token = await AsyncStorage.getItem('token');
+
+            await authApis(token).post(endpoints['borrow'], cartData);
+
+            // Xóa giỏ hàng trong bộ nhớ thiết bị
+            // Xóa dữ liệu trên màn hình hiện tại
+            setBorrowCart([]);
+
+            // Xóa dữ liệu trong context (Provider sẽ tự động cập nhật AsyncStorage)
+            setBorrow({ type: "CLEAR" });
+
+            Alert.alert(
+                'Thành công',
+                'Mượn sách thành công.'
+            );
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data ||
+                'Không thể mượn sách.';
+
+            Alert.alert('Mượn sách thất bại', message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const removeFromCart = async (itemId) => {
+        try {
+            // Cập nhật context (Provider sẽ tự động đồng bộ xuống AsyncStorage)
+            const updatedBorrowObj = { ...borrow };
+            delete updatedBorrowObj[itemId];
+            setBorrow({ type: "UPDATE", payload: updatedBorrowObj });
+
+            // Cập nhật state nội bộ để re-render danh sách
+            const updatedCart = borrowCart.filter(item => item.id !== itemId);
+            setBorrowCart(updatedCart);
+        } catch (error) {
+            console.error('Error removing item from borrow cart:', error);
+        }
+    }
+
     const renderItem = ({ item }) => (
         <View style={styles.cartItem}>
             <Image source={{ uri: item.image }} style={styles.image} />
             <View style={styles.itemInfo}>
-                <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                <Text style={styles.title} numberOfLines={2}>{item.name}</Text>
                 <Text style={styles.author} numberOfLines={1}>{item.author}</Text>
                 <View style={styles.durationBadge}>
                     <Text style={styles.durationText}>Thời hạn: 14 ngày</Text>
                 </View>
             </View>
-            <TouchableOpacity style={styles.deleteButton}>
+            <TouchableOpacity style={styles.deleteButton} onPress={() => removeFromCart(item.id)}>
                 <Trash2 size={20} color="#e74c3c" />
             </TouchableOpacity>
         </View>
@@ -38,22 +93,38 @@ const CartBorrow = () => {
 
     return (
         <View style={styles.container}>
-            <FlatList 
-                data={dummyBorrowData}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-            />
-            
+            <FlatList
+    data={borrowCart}
+    keyExtractor={item => item.id.toString()}
+    renderItem={renderItem}
+    ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>
+                Giỏ mượn đang trống
+            </Text>
+            <Text style={styles.emptyDescription}>
+                Hãy thêm sách vào giỏ để thực hiện mượn.
+            </Text>
+        </View>
+    }
+/>
             <View style={styles.footer}>
                 <View style={styles.summaryRow}>
                     <Text style={styles.summaryText}>Tổng số sách:</Text>
-                    <Text style={styles.summaryValue}>{dummyBorrowData.length} cuốn</Text>
+                    <Text style={styles.summaryValue}>{borrowCart.length} cuốn</Text>
                 </View>
-                <TouchableOpacity style={styles.checkoutButton} activeOpacity={0.8}>
-                    <Text style={styles.checkoutButtonText}>Xác nhận mượn sách</Text>
-                </TouchableOpacity>
+                <TouchableOpacity
+    style={[
+        styles.checkoutButton,
+        borrowCart.length === 0 && styles.checkoutButtonDisabled
+    ]}
+    disabled={borrowCart.length === 0 || submitting}
+    onPress={borrowBooks}
+>
+    <Text style={styles.checkoutButtonText}>
+        {submitting ? 'Đang xử lý...' : 'Xác nhận mượn sách'}
+    </Text>
+</TouchableOpacity>
             </View>
         </View>
     );
@@ -124,7 +195,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
-        paddingBottom: 90, // Account for BottomTabBar
+        paddingBottom: 60, // Account for BottomTabBar
     },
     summaryRow: {
         flexDirection: 'row',
@@ -156,6 +227,25 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    checkoutButtonDisabled: {
+        opacity: 0.5,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 50,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+    },
+    emptyDescription: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#7f8c8d',
     },
 });
 

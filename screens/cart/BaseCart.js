@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import CartBorrow from './CartBorrow';
 import CartBuy from './CartBuy';
-import { ShoppingCart } from 'lucide-react-native';
+import { ShoppingBasket, ShoppingCart } from 'lucide-react-native';
 
 const BaseCart = () => {
-    const [activeTab, setActiveTab] = useState('borrow'); // 'borrow' | 'buy'
+    const [activeTab, setActiveTab] = useState('borrow');
 
     return (
         <SafeAreaView style={styles.container}>
@@ -15,10 +15,10 @@ const BaseCart = () => {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Giỏ hàng</Text>
                 <View style={styles.cartIconWrapper}>
-                    <ShoppingCart size={24} color="#1a1a1a" />
-                    <View style={styles.badge}>
+                    <ShoppingBasket size={24} color="#1a1a1a" />
+                    {/* <View style={styles.badge}>
                         <Text style={styles.badgeText}>3</Text>
-                    </View>
+                    </View> */}
                 </View>
             </View>
 
