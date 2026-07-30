@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Settings, CreditCard, HelpCircle, LogOut, ChevronRight, BookOpen, Bookmark } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MyBorrowCartContext, MyBuyCartContext, MyUserContext } from '../../utils/MyContexts';
+import { useNavigation } from "@react-navigation/native";
 
 const Account = () => {
     const menuItems = [
@@ -11,6 +14,30 @@ const Account = () => {
         { id: 3, title: 'Cài đặt chung', icon: Settings, color: '#1E3A5F' },
         { id: 4, title: 'Trợ giúp & Hỗ trợ', icon: HelpCircle, color: '#1E3A5F' },
     ];
+    const [user, dispatch] = useContext(MyUserContext);
+    const [,cartDispatch] = useContext(MyBorrowCartContext);
+    const [, buyCartDispatch] = useContext(MyBuyCartContext);
+    const nav = useNavigation();
+
+    const logout = async () => {
+        await AsyncStorage.clear();
+        dispatch({
+            "type": "logout",
+            "payload": null
+        })
+        cartDispatch({
+            "type": "CLEAR",
+            "payload": {}
+        })
+        buyCartDispatch({
+            "type": "CLEAR",
+            "payload": []
+        })
+        // nav.reset({
+        //     index: 0,
+        //     routes: [{ name: 'Login' }],
+        // });
+    };
 
     return (
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -18,13 +45,13 @@ const Account = () => {
                 {/* Header Profile */}
                 <View style={styles.header}>
                     <Image 
-                        source={{ uri: 'https://i.pravatar.cc/150?img=11' }} 
+                        source={{ uri: user.avatar || 'https://via.placeholder.com/150' }} 
                         style={styles.avatar} 
                     />
-                    <Text style={styles.name}>Nguyễn Văn A</Text>
-                    <Text style={styles.email}>nguyenvana@elibrary.com</Text>
+                    <Text style={styles.name}>{user.name || 'Nguyễn Văn A'}</Text>
+                    <Text style={styles.email}>{user.email || 'nguyenvana@elibrary.com'}</Text>
                     
-                    <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.editButton} activeOpacity={0.7} onPress={() => { nav.navigate('EditInfo') }}>
                         <Text style={styles.editButtonText}>Chỉnh sửa hồ sơ</Text>
                     </TouchableOpacity>
                 </View>
@@ -67,7 +94,7 @@ const Account = () => {
                 </View>
 
                 {/* Logout */}
-                <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7} onPress={logout}>
                     <LogOut size={20} color="#B3261E" />
                     <Text style={styles.logoutText}>Đăng xuất</Text>
                 </TouchableOpacity>

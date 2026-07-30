@@ -1,24 +1,41 @@
 import axios from "axios";
 
-const BASE_URL = 'http://192.168.113.105:8080/eLibrary_war/api';
+const BASE_URL = 'http://192.168.1.134:8080/eLibrary_war/api';
 
 export const endpoints = {
     // AUTH
     'login': '/login',
     'register': '/users',
     'profile': '/secure/profile',
+    // USER
+    'count-users': '/users/count',
     // DOCUMENTS
     'documents': '/documents',
+    'add-document': '/secure/documents',
     'latest-documents': '/documents/latest',
     'trend-documents': '/documents/trend',
     'document-detail': (id) => `/documents/${id}`,
+    'count-documents': '/documents/count',
+    'delete-document': (id) => `/secure/documents/${id}`,
+    
     // CATEGORY
     'categories': '/categories',
     // PAYMENT
     'payments': '/payments',
     // REVIEWS
-    'reviews': '/reviews',
-
+    'reviews': (documentId) => `/secure/documents/${documentId}/reviews`,
+    'get-reviews': (documentId) => `/documents/${documentId}/reviews`,
+    // BORROW
+    'borrow':'/secure/borrows',
+    'get-borrow':'/secure/borrows',
+    //BUY
+    'buy':'/secure/buy',
+    'get-buy':'/secure/buy',
+    // STATS
+    'overdue-stats':'/stats/secure/overdue-documents',
+    'category-stats':'/stats/secure/categories',
+    'review-stats':'/stats/secure/reviews',
+    'borrowing-stats':'/stats/secure/borrowing',
 };
 
 

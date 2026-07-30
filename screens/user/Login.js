@@ -9,10 +9,8 @@ import { Theme } from "../../styles/Theme";
 import OutlineTextInput from "../../components/OutlineTextInput";
 import Apis, { authApis, endpoints } from "../../utils/Apis";
 import { useNavigation } from "@react-navigation/native";
-import { AsyncStorage } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../utils/MyContexts";
-
-
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -41,12 +39,14 @@ const Login = () => {
             try {
                 setIsLoading(true);
                 let res = await Apis.post(endpoints['login'], 
-                    { username: username, password: password }
+                    { 
+                        username: username, 
+                        password: password 
+                    }
                 );
                 console.log(res.data);
                 if (res.status === 200) {
-                    nav.navigate('TabNavigation'); 
-                    AsyncStorage.setItem('token', res.data.token);
+                    await AsyncStorage.setItem('token', res.data.token);
                     let userRes = await authApis(res.data.token).get(endpoints['profile']);
                     dispatch({ 
                         type: 'login', 
@@ -104,6 +104,7 @@ const Login = () => {
                                 Quên mật khẩu?
                             </Text>
                         </TouchableOpacity>
+                        {error ? <Text style={{ color: Theme.colors.error, marginBottom: 12, textAlign: 'center' }}>{error}</Text> : null}
                         <Button
                             mode="contained"
                             onPress={login}

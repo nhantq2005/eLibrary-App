@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View } from 'react-native';
-import { Home as HomeIcon, User, ShoppingCart, LibraryBig, MessageCircleMore } from 'lucide-react-native';
+import { Home as HomeIcon, User, ShoppingCart, LibraryBig, MessageCircleMore, LayoutDashboard, BookOpen, ArrowRightLeft, ShoppingBag, ShoppingBasket } from 'lucide-react-native';
 
 import Home from '../screens/book/Home';
 import MyBook from '../screens/book/MyBook';
@@ -11,14 +11,22 @@ import BaseCart from '../screens/cart/BaseCart';
 import Account from '../screens/user/Account';
 import ListMessage from '../screens/message/ListMessage';
 import BookDetail from '../screens/book/BookDetail';
-import HomeNavigation from './HomeNavigation';
+import { useContext } from 'react';
+import { MyUserContext } from '../utils/MyContexts';
+
+// Import Librarian screens
+import Dashboard from '../screens/librarian/Dashboard';
+import ManageBook from '../screens/librarian/ManageBook';
+import ManageBorrow from '../screens/librarian/ManageBorrow';
+import ManageBuy from '../screens/librarian/ManageBuy';
+import { useCartTotals } from '../hook/useCartTotals';
 
 const Tab = createBottomTabNavigator();
 const TabIcon = ({ IconComponent, focused, color, size }) => {
     return (
         <View style={{
             backgroundColor: focused ? Theme.colors.primaryContainer : 'transparent',
-            paddingHorizontal: 16,
+            paddingHorizontal: 14,
             paddingVertical: 4,
             borderRadius: 20, // Bo tròn dạng viên thuốc (Pill shape)
         }}>
@@ -29,7 +37,8 @@ const TabIcon = ({ IconComponent, focused, color, size }) => {
 
 const TabNavigation = () => {
     // const unreadCount = useContext(NotificationContext);
-
+    const { totalQuantity } = useCartTotals();
+    const [user,] = useContext(MyUserContext);
     return (
         <Tab.Navigator
             screenOptions={{
@@ -59,52 +68,108 @@ const TabNavigation = () => {
                 },
             }}
         >
-            <Tab.Screen
-                name="HomeMain"
-                component={Home}
-                options={{
-                    title: 'Trang chủ',
-                    tabBarIcon: (props) => <TabIcon IconComponent={HomeIcon} {...props} />,
-                }}
-            />
+            {user && user.role === 'ROLE_LIBRARIAN' ? (
+                <>
+                    <Tab.Screen
+                        name="Dashboard"
+                        component={Dashboard}
+                        options={{
+                            title: 'Tổng quan',
+                            tabBarIcon: (props) => <TabIcon IconComponent={LayoutDashboard} {...props} />,
+                        }}
+                    />
+                    <Tab.Screen
+                        name="ManageBook"
+                        component={ManageBook}
+                        options={{
+                            title: 'Sách',
+                            tabBarIcon: (props) => <TabIcon IconComponent={BookOpen} {...props} />,
+                        }}
+                    />
+                    <Tab.Screen
+                        name="ManageBorrow"
+                        component={ManageBorrow}
+                        options={{
+                            title: 'Mượn/Trả',
+                            tabBarIcon: (props) => <TabIcon IconComponent={ArrowRightLeft} {...props} />,
+                        }}
+                    />
+                    <Tab.Screen
+                        name="ManageBuy"
+                        component={ManageBuy}
+                        options={{
+                            title: 'Đơn mua',
+                            tabBarIcon: (props) => <TabIcon IconComponent={ShoppingBag} {...props} />,
+                        }}
+                    />
+                    <Tab.Screen
+                        name="ListMessage"
+                        component={ListMessage}
+                        options={{
+                            title: 'Tin nhắn',
+                            tabBarIcon: (props) => <TabIcon IconComponent={MessageCircleMore} {...props} />,
+                            tabBarBadge: 3, // Ví dụ: hiển thị số lượng tin nhắn chưa đọc
+                        }}
+                    />
+                    <Tab.Screen
+                        name="Profile"
+                        component={Account}
+                        options={{
+                            title: 'Tài khoản',
+                            tabBarIcon: (props) => <TabIcon IconComponent={User} {...props} />,
+                        }}
+                    />
+                </>
+            ) : (
+                <>
+                    <Tab.Screen
+                        name="HomeMain"
+                        component={Home}
+                        options={{
+                            title: 'Trang chủ',
+                            tabBarIcon: (props) => <TabIcon IconComponent={HomeIcon} {...props} />,
+                        }}
+                    />
 
-            <Tab.Screen
-                name="Cart"
-                component={BaseCart}
-                options={{
-                    title: 'Giỏ hàng',
-                    tabBarIcon: (props) => <TabIcon IconComponent={ShoppingCart} {...props} />,
-                    tabBarBadge: 3, // Ví dụ: hiển thị số lượng sản phẩm trong giỏ hàng
-                }}
-            />
+                    <Tab.Screen
+                        name="Cart"
+                        component={BaseCart}
+                        options={{
+                            title: 'Giỏ hàng',
+                            tabBarIcon: (props) => <TabIcon IconComponent={ShoppingBasket} {...props} />,
+                            tabBarBadge: totalQuantity,
+                        }}
+                    />
 
-            <Tab.Screen
-                name="MyBooks"
-                component={MyBook}
-                options={{
-                    title: 'Sách của tôi',
-                    tabBarIcon: (props) => <TabIcon IconComponent={LibraryBig} {...props} />,
-                }}
-            />
+                    <Tab.Screen
+                        name="MyBooks"
+                        component={MyBook}
+                        options={{
+                            title: 'Sách của tôi',
+                            tabBarIcon: (props) => <TabIcon IconComponent={LibraryBig} {...props} />,
+                        }}
+                    />
 
-            <Tab.Screen
-                name="Messages"
-                component={ListMessage}
-                options={{
-                    title: 'Tin nhắn',
-                    tabBarIcon: (props) => <TabIcon IconComponent={MessageCircleMore} {...props} />,
-                    // tabBarBadge: unreadCount > 0 ? unreadCount : null,
-                }}
-            />
+                    <Tab.Screen
+                        name="Messages"
+                        component={ListMessage}
+                        options={{
+                            title: 'Tin nhắn',
+                            tabBarIcon: (props) => <TabIcon IconComponent={MessageCircleMore} {...props} />,
+                            // tabBarBadge: unreadCount > 0 ? unreadCount : null,
+                        }}
+                    />
 
-            <Tab.Screen
-                name="Profile"
-                component={Account}
-                options={{
-                    title: 'Tài khoản',
-                    tabBarIcon: (props) => <TabIcon IconComponent={User} {...props} />,
-                }}
-            />
+                    <Tab.Screen
+                        name="Profile"
+                        component={Account}
+                        options={{
+                            title: 'Tài khoản',
+                            tabBarIcon: (props) => <TabIcon IconComponent={User} {...props} />,
+                        }}
+                    />
+                </>
+            )}
         </Tab.Navigator>
     );
 };

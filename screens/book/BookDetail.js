@@ -1,12 +1,13 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Animated, Easing, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Animated, Easing, Platform, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Star, BookOpen, ShoppingCart, Heart, Languages, BookOpenCheck, BookPlus, ShoppingBasket } from 'lucide-react-native';
 const { width } = Dimensions.get('window');
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Apis, { endpoints } from '../../utils/Apis';
+import Apis, { endpoints, authApis } from '../../utils/Apis';
 import { MyBorrowCartContext, MyBuyCartContext, MyUserContext } from '../../utils/MyContexts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Spacer from '../../components/Spacer';
 
 const BookDetail = () => {
     const [user,] = useContext(MyUserContext);
@@ -15,6 +16,10 @@ const BookDetail = () => {
     const [isFavorite, setIsFavorite] = useState(false);
     const [flyingCart, setFlyingCart] = useState(null);
     const [book, setBook] = useState(null);
+    const [reviews, setReviews] = useState([]);
+    const [reviewContent, setReviewContent] = useState('');
+    const [reviewRating, setReviewRating] = useState(5);
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
     const route = useRoute();
     const id = route?.params?.id;
     const nav = useNavigation();
@@ -114,6 +119,49 @@ const BookDetail = () => {
         console.log("Updated Buy Cart:", currentCart);
     }
 
+    const loadReviews = async (bookId) => {
+        try {
+            const res = await Apis.get(endpoints['get-reviews'](bookId));
+            console.log("Loaded reviews:", res.data);
+            setReviews(res.data);
+        } catch (error) {
+            console.error("Failed to load reviews:", error);
+        }
+    };
+
+    const submitReview = async () => {
+        if (!reviewContent.trim()) {
+            alert('Vui lòng nhập nội dung đánh giá!');
+            return;
+        }
+        try {
+            setIsSubmittingReview(true);
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                alert('Vui lòng đăng nhập để đánh giá!');
+                return;
+            }
+            const res = await authApis(token).post(endpoints['reviews'](book.id), {
+                comment: reviewContent,
+                rating: reviewRating
+            });
+            
+            setReviews([{
+                user: user || { username: 'Bạn' },
+                comment: reviewContent,
+                rating: reviewRating
+            }, ...reviews]);
+            setReviewContent('');
+            setReviewRating(5);
+            alert('Cảm ơn bạn đã đánh giá!');
+        } catch (err) {
+            console.log("Submit review error:", err);
+            alert('Có lỗi xảy ra khi gửi đánh giá');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
+
     useEffect(() => {
         return () => {
             if (flightTimerRef.current) {
@@ -125,6 +173,7 @@ const BookDetail = () => {
     useEffect(() => {
         if (id) {
             loadBook(id);
+            loadReviews(id);
         }
     }, [id]);
 
@@ -195,6 +244,69 @@ const BookDetail = () => {
                     <Text style={styles.sectionTitle}>Giới thiệu nội dung</Text>
                     <Text style={styles.descriptionText}>{book.description}</Text>
                 </View>
+
+                {/* Write Review Section */}
+                <View style={[styles.descSection, { marginTop: 20 }]}>
+                    <Text style={styles.sectionTitle}>Viết đánh giá của bạn</Text>
+                    <View style={{ backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}>
+                        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <TouchableOpacity key={star} onPress={() => setReviewRating(star)} style={{ marginRight: 8 }}>
+                                    <Star size={24} color={star <= reviewRating ? "#B8860B" : "#D3D3D3"} fill={star <= reviewRating ? "#B8860B" : "transparent"} />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                        <TextInput
+                            style={{ backgroundColor: '#F3F0E9', borderRadius: 8, padding: 12, minHeight: 80, textAlignVertical: 'top', color: '#1E3A5F', marginBottom: 12 }}
+                            placeholder="Chia sẻ cảm nghĩ của bạn về cuốn sách này..."
+                            placeholderTextColor="#9AA5B1"
+                            multiline
+                            value={reviewContent}
+                            onChangeText={setReviewContent}
+                        />
+                        <TouchableOpacity 
+                            style={{ backgroundColor: '#1E3A5F', paddingVertical: 12, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+                            onPress={submitReview}
+                            disabled={isSubmittingReview}
+                        >
+                            {isSubmittingReview ? (
+                                <ActivityIndicator color="#FFFFFF" size="small" style={{ marginRight: 8 }} />
+                            ) : null}
+                            <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 }}>Gửi đánh giá</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <Spacer height={20} />
+
+                {/* Reviews List Section */}
+                <View style={styles.descSection}>
+                    <Text style={styles.sectionTitle}>Đánh giá ({reviews.length})</Text>
+                    {reviews.length > 0 ? (
+                        reviews.map((review, index) => (
+                            <View key={index} style={{ marginBottom: 12, padding: 16, backgroundColor: '#FFFFFF', borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#1E3A5F', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                                        <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
+                                            {(review.user?.username || review.username || 'U')[0].toUpperCase()}
+                                        </Text>
+                                    </View>
+                                    <Text style={{ fontWeight: 'bold', flex: 1, fontSize: 15, color: '#1E3A5F' }}>{review.user?.username || review.username || 'Người dùng'}</Text>
+                                    <View style={{ flexDirection: 'row' }}>
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={14} color={i < (review.rating || 5) ? "#B8860B" : "#D3D3D3"} fill={i < (review.rating || 5) ? "#B8860B" : "transparent"} />
+                                        ))}
+                                    </View>
+                                </View>
+                                <Text style={{ color: '#5A6570', lineHeight: 20 }}>{review.content || review.comment || ''}</Text>
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={styles.descriptionText}>Chưa có đánh giá nào cho sách này.</Text>
+                    )}
+                </View>
+
+                <Spacer height={20} />
             </ScrollView>
 
             {/* Bottom Action Bar */}

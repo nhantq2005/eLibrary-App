@@ -146,6 +146,16 @@ const CartBuy = () => {
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyTitle}>
+                            Giỏ mượn đang trống
+                        </Text>
+                        <Text style={styles.emptyDescription}>
+                            Hãy thêm sách vào giỏ để thực hiện mượn.
+                        </Text>
+                    </View>
+                }
             />
 
             <View style={styles.footer}>
@@ -153,13 +163,13 @@ const CartBuy = () => {
                     <Text style={styles.summaryText}>Tổng thanh toán:</Text>
                     <Text style={styles.summaryValue}>{formattedTotal}</Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[
                         styles.checkoutButton,
                         buyCart.length === 0 && styles.checkoutButtonDisabled
-                    ]} 
-                    activeOpacity={0.8} 
-                    onPress={buyBooks} 
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={buyBooks}
                     disabled={buyCart.length === 0 || submitting}
                 >
                     <Text style={styles.checkoutButtonText}>{submitting ? 'Đang xử lý...' : 'Tiến hành thanh toán'}</Text>
@@ -287,6 +297,22 @@ const styles = StyleSheet.create({
     },
     checkoutButtonDisabled: {
         opacity: 0.5,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 50,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+    },
+    emptyDescription: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#7f8c8d',
     },
 });
 
