@@ -7,11 +7,12 @@ import { useNavigation } from '@react-navigation/native'
 const BookListItem = ({ book }) => {
 
     const nav = useNavigation();
-    // Định dạng giá tiền chuẩn VNĐ
-    const formattedPrice = book.price ? new Intl.NumberFormat('vi-VN', {
+    
+    const formattedPrice = book.price === 0 ? 'Miễn phí' :
+    new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND'
-    }).format(book.price) : 'Miễn phí';
+    }).format(book.price);
 
     return (
         <TouchableOpacity onPress={() => nav.navigate('BookDetail', { id: book.id })} activeOpacity={0.7}>
@@ -24,7 +25,9 @@ const BookListItem = ({ book }) => {
                     <View style={styles.headerContainer}>
                         <View style={styles.infoContainer}>
                             <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
-                            <Text style={styles.author} numberOfLines={1}>{book.author}</Text>
+                            <Text style={styles.author} numberOfLines={1}>
+                                {book.authors.map((author) => author.name).join(', ')}
+                            </Text>
                         </View>
                         <TouchableOpacity style={styles.bookmarkButton} onPress={() => console.log("Bookmark pressed")}>
                             <Bookmark size={22} color="#7b96cc" />

@@ -14,7 +14,6 @@ export const MyBuyCartProvider = ({ children }) => {
       try {
         const buyCartData = await AsyncStorage.getItem(`cart_buy`);
         if (buyCartData) {
-          // Parse data và đẩy payload cho reducer
           dispatch({ type: "UPDATE", payload: JSON.parse(buyCartData) });
         }
       } catch (e) {

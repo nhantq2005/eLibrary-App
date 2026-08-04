@@ -1,64 +1,138 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert } from 'react-native';
 import { Trash2, Minus, Plus } from 'lucide-react-native';
-
-const dummyBuyData = [
-    {
-        id: '1',
-        title: 'Sapiens: Lược Sử Loài Người',
-        author: 'Yuval Noah Harari',
-        image: 'https://picsum.photos/200/300?random=3',
-        price: 150000,
-        quantity: 1,
-    },
-    {
-        id: '2',
-        title: 'Dune - Xứ Cát',
-        author: 'Frank Herbert',
-        image: 'https://picsum.photos/200/300?random=4',
-        price: 220000,
-        quantity: 2,
-    }
-];
+import { MyBuyCartContext } from '../../utils/MyContexts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { normalizeCart } from '../../utils/Utils';
+import { useNavigation } from '@react-navigation/native';
+import { authApis, endpoints } from '../../utils/Apis';
 
 const CartBuy = () => {
-    
+    const [buy, setBuy] = useContext(MyBuyCartContext);
+    const [buyCart, setBuyCart] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const nav = useNavigation();
+
+    useEffect(() => {
+        if (buy) {
+            setBuyCart(normalizeCart(buy));
+        }
+        setLoading(false);
+    }, [buy]);
+
+    const buyBooks = async () => {
+        console.log('Buy button pressed');
+        if (buyCart.length === 0) {
+            Alert.alert('Thông báo', 'Giỏ mua đang trống.');
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+
+            const cartData = buyCart.map(item => ({
+                docId: Number(item.id),
+                quantity: Number(item.quantity || 1),
+            }));
+
+            const token = await AsyncStorage.getItem('token');
+
+            const res = await authApis(token).post(endpoints['buy'], cartData);
+
+            // Xóa giỏ hàng trong bộ nhớ thiết bị
+            // Xóa dữ liệu trên màn hình hiện tại
+            setBuyCart([]);
+
+            // Xóa dữ liệu trong context (Provider sẽ tự động cập nhật AsyncStorage)
+            setBuy({ type: "PAID" });
+
+            Alert.alert(
+                'Thành công',
+                'Mua sách thành công.'
+            );
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data ||
+                'Không thể mua sách.';
+
+            Alert.alert('Mua sách thất bại', message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const removeFromCart = async (itemId) => {
+        try {
+            // Cập nhật context (Provider sẽ tự động đồng bộ xuống AsyncStorage)
+            const updatedBuyObj = { ...buy };
+            delete updatedBuyObj[itemId];
+            setBuy({ type: "UPDATE", payload: updatedBuyObj });
+
+            // Cập nhật state nội bộ để re-render danh sách
+            const updatedCart = buyCart.filter(item => item.id !== itemId);
+            setBuyCart(updatedCart);
+        } catch (error) {
+            console.error('Error removing item from buy cart:', error);
+        }
+    }
+
     const renderItem = ({ item }) => {
         const formattedPrice = new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
         }).format(item.price);
 
+        const changeQuantity = (bookId, newQuantity) => {
+            if (newQuantity < 1) return;
+            const updatedBuyObj = { ...buy };
+            if (updatedBuyObj[bookId]) {
+                updatedBuyObj[bookId].quantity = newQuantity;
+                setBuy({ type: "UPDATE", payload: updatedBuyObj });
+            }
+        };
+
         return (
-            <View style={styles.cartItem}>
+            <TouchableOpacity style={styles.cartItem} onPress={() => { nav.navigate('BookDetail', { bookId: item.id }) }} activeOpacity={0.8}>
                 <Image source={{ uri: item.image }} style={styles.image} />
                 <View style={styles.itemInfo}>
                     <View>
-                        <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                        <Text style={styles.title} numberOfLines={2}>{item.name}</Text>
                         <Text style={styles.author} numberOfLines={1}>{item.author}</Text>
                         <Text style={styles.price}>{formattedPrice}</Text>
                     </View>
-                    
+
                     <View style={styles.actionRow}>
                         <View style={styles.quantityControl}>
-                            <TouchableOpacity style={styles.quantityBtn}>
+                            <TouchableOpacity style={styles.quantityBtn} onPress={() => changeQuantity(item.id, item.quantity - 1)}>
                                 <Minus size={14} color="#7f8c8d" />
                             </TouchableOpacity>
                             <Text style={styles.quantityText}>{item.quantity}</Text>
-                            <TouchableOpacity style={styles.quantityBtn}>
+                            <TouchableOpacity style={styles.quantityBtn} onPress={() => changeQuantity(item.id, item.quantity + 1)}>
                                 <Plus size={14} color="#7f8c8d" />
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity style={styles.deleteButton}>
+                        <TouchableOpacity style={styles.deleteButton} onPress={() => removeFromCart(item.id)}>
                             <Trash2 size={18} color="#e74c3c" />
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
 
-    const totalPrice = dummyBuyData.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+    // Duplicate effect and loadBuyCart were removed
+
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <Text style={{ textAlign: 'center', marginTop: 20 }}>Đang tải...</Text>
+            </View>
+        );
+    }
+
+    const totalPrice = buyCart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
     const formattedTotal = new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND'
@@ -66,21 +140,39 @@ const CartBuy = () => {
 
     return (
         <View style={styles.container}>
-            <FlatList 
-                data={dummyBuyData}
+            <FlatList
+                data={buyCart}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyTitle}>
+                            Giỏ mượn đang trống
+                        </Text>
+                        <Text style={styles.emptyDescription}>
+                            Hãy thêm sách vào giỏ để thực hiện mượn.
+                        </Text>
+                    </View>
+                }
             />
-            
+
             <View style={styles.footer}>
                 <View style={styles.summaryRow}>
                     <Text style={styles.summaryText}>Tổng thanh toán:</Text>
                     <Text style={styles.summaryValue}>{formattedTotal}</Text>
                 </View>
-                <TouchableOpacity style={styles.checkoutButton} activeOpacity={0.8}>
-                    <Text style={styles.checkoutButtonText}>Tiến hành thanh toán</Text>
+                <TouchableOpacity
+                    style={[
+                        styles.checkoutButton,
+                        buyCart.length === 0 && styles.checkoutButtonDisabled
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={buyBooks}
+                    disabled={buyCart.length === 0 || submitting}
+                >
+                    <Text style={styles.checkoutButtonText}>{submitting ? 'Đang xử lý...' : 'Tiến hành thanh toán'}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -169,7 +261,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
-        paddingBottom: 90, // account for BottomTabBar
+        paddingBottom: 60, // account for BottomTabBar
     },
     summaryRow: {
         flexDirection: 'row',
@@ -202,6 +294,25 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    checkoutButtonDisabled: {
+        opacity: 0.5,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 50,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2c3e50',
+    },
+    emptyDescription: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#7f8c8d',
     },
 });
 
