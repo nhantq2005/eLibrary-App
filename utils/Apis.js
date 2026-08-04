@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = 'http://192.168.1.134:8080/eLibrary_war/api';
+const BASE_URL = 'http://192.168.:8080/eLibrary_war_exploded/api';
 
 export const endpoints = {
     // AUTH

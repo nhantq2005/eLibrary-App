@@ -11,7 +11,7 @@ const MyBorrowBook = () => {
     const [loading, setLoading] = useState(true);
 
     const loadBorrowedBooks = async () => {
-        try{
+        try {
             const token = await AsyncStorage.getItem('token');
             const res = await authApis(token).get(endpoints['get-borrow']);
             setBorrowBooks(res.data);
@@ -36,8 +36,10 @@ const MyBorrowBook = () => {
         <View style={styles.cartItem}>
             <Image source={{ uri: item.image }} style={styles.image} />
             <View style={styles.itemInfo}>
-                <Text style={styles.title} numberOfLines={2}>{item.documentTitle}</Text>
-                <Text style={styles.author} numberOfLines={1}>{item.authorNames}</Text>
+                <View>
+                    <Text style={styles.title} numberOfLines={2}>{item.documentTitle}</Text>
+                    <Text style={styles.author} numberOfLines={1}>{item.authorNames}</Text>
+                </View>
                 <View style={styles.durationBadge}>
                     <Text style={styles.durationText}>Thời hạn: {calDuration(item)}</Text>
                 </View>
@@ -57,7 +59,7 @@ const MyBorrowBook = () => {
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
             />
-            
+
         </View>
     );
 };
@@ -93,6 +95,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginLeft: 15,
         justifyContent: 'center',
+
     },
     title: {
         fontSize: 16,

@@ -41,8 +41,9 @@ const MyBuyBook = () => {
                     <View>
                         <Text style={styles.title} numberOfLines={2}>{item.documentTitle}</Text>
                         <Text style={styles.author} numberOfLines={1}>{item.authorNames}</Text>
-                        <Text style={styles.price}>{formattedPrice}</Text>
+                        
                     </View>
+                    <Text style={styles.price}>{formattedPrice}</Text>
 
                     {/* <View style={styles.actionRow}>
                         <View style={styles.quantityControl}>
@@ -127,6 +128,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#e74c3c',
         marginBottom: 10,
+
     },
     actionRow: {
         flexDirection: 'row',

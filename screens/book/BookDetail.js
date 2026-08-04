@@ -185,7 +185,8 @@ const BookDetail = () => {
         );
     }
 
-    const formattedPrice = new Intl.NumberFormat('vi-VN', {
+    const formattedPrice = book.price === 0 ? 'Miễn phí' :
+    new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND'
     }).format(book.price);
