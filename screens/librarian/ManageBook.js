@@ -54,7 +54,6 @@ const ManageBook = ({ navigation }) => {
         }
     }
 
-
     useEffect(() => {
         loadBooks();
     }, [searchQuery]);

@@ -165,39 +165,7 @@ const Dashboard = ({ navigation }) => {
                     />
                 </View>
 
-                <View style={styles.recentSectionHeader}>
-                    <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
-                    <TouchableOpacity>
-                        <Text style={styles.seeAllText}>Xem tất cả</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {stats.categories.length > 0 && (
-                    <View style={{ alignItems: 'center', marginBottom: 20 }}>
-                        <PieChart
-                            data={stats.categories.map((item, index) => ({
-                                value: item[2],
-                                color: PIECHART_COLORS[index % PIECHART_COLORS.length],
-                                label: typeof item[1] === 'object' ? item[1].name : item[1],
-                            }))}
-                            width={300}
-                            height={200}
-                            donut
-                            innerRadius={30}
-                            outerRadius={80}
-                        />
-                        {renderLegendComponent()}
-                    </View>
-                )}
-
-                {stats.borrowing.map((item, index) => (
-                    <ActivityCard 
-                        key={index.toString()}
-                        userName={item.userName}
-                        documentTitle={item.documentTitle}
-                        borrowDate={item.borrowDate}
-                    />
-                ))}
+            
 
             </ScrollView>
         </SafeAreaView>
@@ -208,7 +176,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F9FA' },
     header: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#FFFFFF',
+        paddingHorizontal: 20, paddingVertical: 15, 
         borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
     },
     greeting: { fontSize: 14, color: '#6C757D' },

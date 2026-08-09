@@ -1,51 +1,81 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, CheckCircle, XCircle, Clock } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authApis, endpoints } from '../../utils/Apis';
+import { styles } from '../../styles/ManageBorrowStyle';
+import { formatDate } from '../../utils/Utils';
 
 const ManageBorrow = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'active', 'overdue'
+    const [activeTab, setActiveTab] = useState('PENDING');
+    const [borrow, setBorrow] = useState([]);
 
-    const borrowRequests = [
-        { id: 'BR001', userName: 'Nguyễn Văn A', bookTitle: 'Lập trình Spring Boot', date: '02/07/2026', status: 'pending' },
-        { id: 'BR002', userName: 'Trần Thị B', bookTitle: 'Clean Code', date: '01/07/2026', status: 'pending' },
-    ];
 
-    const activeBorrows = [
-        { id: 'BR003', userName: 'Lê Văn C', bookTitle: 'Đắc Nhân Tâm', dueDate: '15/07/2026', status: 'active' },
-    ];
+    const loadBorrow = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const res = await authApis(token).get(`${endpoints['get-borrow']}?status=${activeTab}`);
+            console.log('Response from API:', res.data); // Log the response data for debugging
+            console.log('Token used for API call:', token); // Log the token for debugging
+            if (res.status === 200) {
+                setBorrow(res.data);
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách mượn:', error);
+        }
+    };
 
-    const overdueBorrows = [
-        { id: 'BR004', userName: 'Phạm Thị D', bookTitle: 'Nhà Giả Kim', dueDate: '30/06/2026', status: 'overdue', daysOverdue: 2 },
-    ];
+    useEffect(() => {
+        loadBorrow();
+    }, [activeTab]);
+
+    const updateBorrowStatus = async (borrowId, status) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const res = await authApis(token).put(endpoints['update-borrow-status'](borrowId), status, {
+                headers: { 'Content-Type': 'text/plain' }
+            });
+            console.log('Response from update API:', res.data); // Log the response data for debugging
+            if (res.status === 200) {
+                
+                loadBorrow();
+                Alert.alert('Cập nhật trạng thái mượn thành công');
+            }
+        } catch (error) {
+            console.error('Lỗi khi cập nhật trạng thái mượn:', error);
+            Alert.alert('Có lỗi xảy ra khi cập nhật trạng thái mượn');
+        }
+    };
+
 
     const renderTabs = () => (
         <View style={styles.tabsContainer}>
             <TouchableOpacity 
                 style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
-                onPress={() => setActiveTab('pending')}
+                onPress={() => setActiveTab('PENDING')}
             >
-                <Text style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>Chờ duyệt (2)</Text>
+                <Text style={[styles.tabText, activeTab === 'PENDING' && styles.activeTabText]}>Chờ duyệt</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-                style={[styles.tab, activeTab === 'active' && styles.activeTab]}
-                onPress={() => setActiveTab('active')}
+                style={[styles.tab, activeTab === 'BORROWED' && styles.activeTab]}
+                onPress={() => setActiveTab('BORROWED')}
             >
-                <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>Đang mượn</Text>
+                <Text style={[styles.tabText, activeTab === 'BORROWED' && styles.activeTabText]}>Đang mượn</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-                style={[styles.tab, activeTab === 'overdue' && styles.activeTab]}
-                onPress={() => setActiveTab('overdue')}
+                style={[styles.tab, activeTab === 'OVERDUE' && styles.activeTab]}
+                onPress={() => setActiveTab('OVERDUE')}
             >
-                <Text style={[styles.tabText, activeTab === 'overdue' && styles.activeTabText]}>Quá hạn (1)</Text>
+                <Text style={[styles.tabText, activeTab === 'OVERDUE' && styles.activeTabText]}>Quá hạn</Text>
             </TouchableOpacity>
         </View>
     );
 
     const renderPendingList = () => (
         <View>
-            {borrowRequests.map(item => (
+            {borrow.map(item => (
                 <View key={item.id} style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.reqId}>Mã: {item.id}</Text>
@@ -55,16 +85,16 @@ const ManageBorrow = ({ navigation }) => {
                         </View>
                     </View>
                     <View style={styles.cardBody}>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Độc giả: </Text>{item.userName}</Text>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Sách: </Text>{item.bookTitle}</Text>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Ngày tạo: </Text>{item.date}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Độc giả: </Text>{item.name}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Sách: </Text>{item.documentTitle}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Ngày tạo: </Text>{formatDate(item.borrowedDate)}</Text>
                     </View>
                     <View style={styles.cardFooter}>
-                        <TouchableOpacity style={[styles.actionBtn, styles.rejectBtn]}>
+                        <TouchableOpacity style={[styles.actionBtn, styles.rejectBtn]} onPress={() => updateBorrowStatus(item.id, 'REFUSE')}>
                             <XCircle size={16} color="#D32F2F" style={{marginRight: 6}} />
                             <Text style={styles.rejectBtnText}>Từ chối</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.actionBtn, styles.acceptBtn]}>
+                        <TouchableOpacity style={[styles.actionBtn, styles.acceptBtn]} onPress={() => updateBorrowStatus(item.id, 'BORROWED')}>
                             <CheckCircle size={16} color="#FFFFFF" style={{marginRight: 6}} />
                             <Text style={styles.acceptBtnText}>Duyệt mượn</Text>
                         </TouchableOpacity>
@@ -76,7 +106,7 @@ const ManageBorrow = ({ navigation }) => {
 
     const renderActiveList = () => (
         <View>
-            {activeBorrows.map(item => (
+            {borrow.map(item => (
                 <View key={item.id} style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.reqId}>Mã: {item.id}</Text>
@@ -85,12 +115,12 @@ const ManageBorrow = ({ navigation }) => {
                         </View>
                     </View>
                     <View style={styles.cardBody}>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Độc giả: </Text>{item.userName}</Text>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Sách: </Text>{item.bookTitle}</Text>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Hạn trả: </Text><Text style={styles.activeDateText}>{item.dueDate}</Text></Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Độc giả: </Text>{item.name}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Sách: </Text>{item.documentTitle}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Hạn trả: </Text><Text style={styles.activeDateText}>{formatDate(item.returnDate)}</Text></Text>
                     </View>
                     <View style={styles.cardFooterSingle}>
-                        <TouchableOpacity style={[styles.actionBtn, styles.returnBtn]}>
+                        <TouchableOpacity style={[styles.actionBtn, styles.returnBtn]} onPress={() => updateBorrowStatus(item.id, 'RETURNED')}>
                             <CheckCircle size={16} color="#FFFFFF" style={{marginRight: 6}} />
                             <Text style={styles.acceptBtnText}>Xác nhận trả sách</Text>
                         </TouchableOpacity>
@@ -102,7 +132,7 @@ const ManageBorrow = ({ navigation }) => {
 
     const renderOverdueList = () => (
         <View>
-            {overdueBorrows.map(item => (
+            {borrow.map(item => (
                 <View key={item.id} style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.reqId}>Mã: {item.id}</Text>
@@ -111,16 +141,16 @@ const ManageBorrow = ({ navigation }) => {
                         </View>
                     </View>
                     <View style={styles.cardBody}>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Độc giả: </Text>{item.userName}</Text>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Sách: </Text>{item.bookTitle}</Text>
-                        <Text style={styles.infoRow}><Text style={styles.label}>Hạn trả: </Text><Text style={styles.overdueDateText}>{item.dueDate}</Text></Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Độc giả: </Text>{item.name}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Sách: </Text>{item.documentTitle}</Text>
+                        <Text style={styles.infoRow}><Text style={styles.label}>Hạn trả: </Text><Text style={styles.overdueDateText}>{formatDate(item.returnDate)}</Text></Text>
                     </View>
                     <View style={styles.cardFooterSingle}>
                          <TouchableOpacity style={[styles.actionBtn, styles.remindBtn]}>
                             <Text style={styles.remindBtnText}>Gửi nhắc nhở</Text>
                         </TouchableOpacity>
                         <View style={{width: 10}}/>
-                        <TouchableOpacity style={[styles.actionBtn, styles.returnBtn, {flex: 1}]}>
+                        <TouchableOpacity style={[styles.actionBtn, styles.returnBtn, {flex: 1}]} onPress={() => updateBorrowStatus(item.id, 'RETURNED')}>
                             <Text style={styles.acceptBtnText}>Xác nhận trả</Text>
                         </TouchableOpacity>
                     </View>
@@ -150,84 +180,12 @@ const ManageBorrow = ({ navigation }) => {
             {renderTabs()}
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContainer}>
-                {activeTab === 'pending' && renderPendingList()}
-                {activeTab === 'active' && renderActiveList()}
-                {activeTab === 'overdue' && renderOverdueList()}
+                {activeTab === 'PENDING' && renderPendingList()}
+                {activeTab === 'BORROWED' && renderActiveList()}
+                {activeTab === 'OVERDUE' && renderOverdueList()}
             </ScrollView>
         </SafeAreaView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F8F9FA' },
-    header: {
-        paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
-    },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#212529' },
-    searchContainer: { paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#FFFFFF' },
-    searchBar: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F3F5',
-        borderRadius: 10, paddingHorizontal: 15, height: 44,
-    },
-    searchIcon: { marginRight: 10 },
-    searchInput: { flex: 1, fontSize: 14, color: '#212529' },
-    
-    tabsContainer: {
-        flexDirection: 'row', backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
-    },
-    tab: {
-        flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent',
-    },
-    activeTab: { borderBottomColor: '#1976D2' },
-    tabText: { fontSize: 14, color: '#6C757D', fontWeight: '500' },
-    activeTabText: { color: '#1976D2', fontWeight: 'bold' },
-
-    listContainer: { padding: 20, paddingBottom: 40 },
-    card: {
-        backgroundColor: '#FFFFFF', borderRadius: 12, marginBottom: 15,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05, shadowRadius: 3, elevation: 2,
-        overflow: 'hidden'
-    },
-    cardHeader: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: 15, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8F9FA',
-    },
-    reqId: { fontSize: 13, fontWeight: 'bold', color: '#495057' },
-    
-    statusBadgePending: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF3E0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-    statusTextPending: { fontSize: 11, color: '#F57C00', fontWeight: '600' },
-    
-    statusBadgeActive: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-    statusTextActive: { fontSize: 11, color: '#388E3C', fontWeight: '600' },
-
-    statusBadgeOverdue: { backgroundColor: '#FFEBEE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-    statusTextOverdue: { fontSize: 11, color: '#D32F2F', fontWeight: '600' },
-
-    cardBody: { padding: 15 },
-    infoRow: { fontSize: 14, color: '#212529', marginBottom: 6 },
-    label: { color: '#6C757D' },
-    activeDateText: { color: '#388E3C', fontWeight: '600' },
-    overdueDateText: { color: '#D32F2F', fontWeight: '600' },
-
-    cardFooter: {
-        flexDirection: 'row', padding: 15, paddingTop: 0, justifyContent: 'space-between'
-    },
-    cardFooterSingle: {
-         flexDirection: 'row', padding: 15, paddingTop: 0,
-    },
-    actionBtn: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 10, borderRadius: 8, flex: 0.48
-    },
-    rejectBtn: { backgroundColor: '#FFEBEE' },
-    rejectBtnText: { color: '#D32F2F', fontWeight: '600', fontSize: 14 },
-    acceptBtn: { backgroundColor: '#1976D2' },
-    acceptBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
-    returnBtn: { backgroundColor: '#388E3C', flex: 1 },
-    remindBtn: { backgroundColor: '#FFF3E0', flex: 1 },
-    remindBtnText: { color: '#F57C00', fontWeight: '600', fontSize: 14 },
-});
 
 export default ManageBorrow;
