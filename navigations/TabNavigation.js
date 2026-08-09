@@ -13,8 +13,6 @@ import ListMessage from '../screens/message/ListMessage';
 import BookDetail from '../screens/book/BookDetail';
 import { useContext } from 'react';
 import { MyUserContext } from '../utils/MyContexts';
-
-// Import Librarian screens
 import Dashboard from '../screens/librarian/Dashboard';
 import ManageBook from '../screens/librarian/ManageBook';
 import ManageBorrow from '../screens/librarian/ManageBorrow';
@@ -28,7 +26,7 @@ const TabIcon = ({ IconComponent, focused, color, size }) => {
             backgroundColor: focused ? Theme.colors.primaryContainer : 'transparent',
             paddingHorizontal: 14,
             paddingVertical: 4,
-            borderRadius: 20, // Bo tròn dạng viên thuốc (Pill shape)
+            borderRadius: 20, 
         }}>
             <IconComponent color={focused ? "white" : color} size={size} />
         </View>
@@ -53,14 +51,13 @@ const TabNavigation = () => {
                 tabBarStyle: {
                     backgroundColor: Theme.colors.surface,
                     position: 'absolute',
-                    // Bỏ viền dưới vì thanh này thường nằm sát đáy màn hình
                     borderRadius: 24,
                     borderTopRightRadius: 24,
                     elevation: 10,
                     shadowColor: '#000',
                     shadowOpacity: 0.08,
                     shadowRadius: 10,
-                    height: 65, // Tăng nhẹ chiều cao để chứa vừa viên thuốc
+                    height: 65,
                     paddingBottom: 10,
                     paddingTop: 8,
                     margin: 10,
@@ -102,15 +99,15 @@ const TabNavigation = () => {
                             tabBarIcon: (props) => <TabIcon IconComponent={ShoppingBag} {...props} />,
                         }}
                     />
-                    <Tab.Screen
+                    {/* <Tab.Screen
                         name="ListMessage"
                         component={ListMessage}
                         options={{
                             title: 'Tin nhắn',
                             tabBarIcon: (props) => <TabIcon IconComponent={MessageCircleMore} {...props} />,
-                            tabBarBadge: 3, // Ví dụ: hiển thị số lượng tin nhắn chưa đọc
+                            tabBarBadge: 3,
                         }}
-                    />
+                    /> */}
                     <Tab.Screen
                         name="Profile"
                         component={Account}
@@ -150,7 +147,7 @@ const TabNavigation = () => {
                         }}
                     />
 
-                    <Tab.Screen
+                    {/* <Tab.Screen
                         name="Messages"
                         component={ListMessage}
                         options={{
@@ -158,7 +155,7 @@ const TabNavigation = () => {
                             tabBarIcon: (props) => <TabIcon IconComponent={MessageCircleMore} {...props} />,
                             // tabBarBadge: unreadCount > 0 ? unreadCount : null,
                         }}
-                    />
+                    /> */}
 
                     <Tab.Screen
                         name="Profile"

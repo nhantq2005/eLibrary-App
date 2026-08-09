@@ -6,45 +6,6 @@ import { Search, Edit } from 'lucide-react-native';
 const ListMessage = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
 
-    const conversations = [
-        {
-            id: '1',
-            name: 'Nguyễn Văn A',
-            avatar: 'https://via.placeholder.com/50',
-            lastMessage: 'Sách của tôi bao giờ thì được duyệt vậy?',
-            time: '10:30',
-            unread: 2,
-            isOnline: true,
-        },
-        {
-            id: '2',
-            name: 'Trần Thị B',
-            avatar: 'https://via.placeholder.com/50',
-            lastMessage: 'Cảm ơn thư viện nhiều ạ!',
-            time: 'Hôm qua',
-            unread: 0,
-            isOnline: false,
-        },
-        {
-            id: '3',
-            name: 'Hỗ trợ kỹ thuật',
-            avatar: 'https://via.placeholder.com/50',
-            lastMessage: 'Đã cập nhật hệ thống thành công.',
-            time: 'Thứ 2',
-            unread: 1,
-            isOnline: true,
-        },
-        {
-            id: '4',
-            name: 'Lê Văn C',
-            avatar: 'https://via.placeholder.com/50',
-            lastMessage: 'Tôi muốn gia hạn thêm sách.',
-            time: '24/06',
-            unread: 0,
-            isOnline: false,
-        },
-    ];
-
     const unreadCount = conversations.reduce((acc, curr) => acc + curr.unread, 0);
 
     return (
