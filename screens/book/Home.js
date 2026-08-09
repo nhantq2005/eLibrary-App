@@ -161,88 +161,71 @@ const Home = () => {
 
 
             {!kw ? (
-                <ScrollView 
-                    showsVerticalScrollIndicator={false} 
-                    style={{ marginTop: 10 }} // Đổi marginVertical thành marginTop để không bị dư khoảng trắng phía dưới
-                    contentContainerStyle={{ paddingBottom: 60 }} // Thêm paddingBottom để nội dung không bị lấp bởi tab bar
-                >
-                    {/* <View> */}
-                        <View>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 10 }}>
-                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#2d3436' }}>
-                                    Sách mới nhất
-                                </Text>
-                                <TouchableOpacity>
-                                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E3A5F' }}>Xem tất cả</Text>
-                                </TouchableOpacity>
+                <FlatList
+                    data={books}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => <BookCardItem book={item} />}
+                    numColumns={2}
+                    onRefresh={loadBooks}
+                    refreshing={loading}
+                    showsVerticalScrollIndicator={false}
+                    style={{ marginTop: 10 }}
+                    contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 60 }}
+                    ListHeaderComponent={
+                        <View style={{ marginHorizontal: -10 }}>
+                            <View>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 10 }}>
+                                    <Text style={{ fontSize: 20, fontWeight: '800', color: '#2d3436' }}>
+                                        Sách mới nhất
+                                    </Text>
+                                    <TouchableOpacity>
+                                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E3A5F' }}>Xem tất cả</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <FlatList
+                                    data={latestBooks}
+                                    keyExtractor={(item) => item.id.toString()}
+                                    renderItem={({ item }) => <BookCardItem book={item} />}
+                                    horizontal={true}
+                                    alwaysBounceVertical={false}
+                                    bounces={false}
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={{ paddingHorizontal: 10 }}
+                                />
                             </View>
+
+                            <View style={{ marginTop: 15 }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 10, marginTop: 10 }}>
+                                    <Text style={{ fontSize: 20, fontWeight: '800', color: '#2d3436' }}>
+                                        Sách thịnh hành
+                                    </Text>
+                                </View>
+                                <View style={{ paddingHorizontal: 10 }}>
+                                    {trendBooks.map(item => (
+                                        <BookListItem key={item.id.toString()} book={item} />
+                                    ))}
+                                </View>
+                            </View>
+
                             <FlatList
-                                data={latestBooks}
+                                data={categories}
                                 keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => <BookCardItem book={item} />}
-                                onRefresh={loadLatestBooks}
-                                refreshing={loading}
+                                renderItem={({ item }) => (
+                                    <ChipItem
+                                        label={item.name}
+                                        onPress={() => setCateId(item.id)}
+                                        isSelected={cateId === item.id}
+                                    />
+                                )}
                                 horizontal={true}
                                 alwaysBounceVertical={false}
                                 bounces={false}
                                 showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={{ paddingHorizontal: 10 }}
+                                contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
                             />
                         </View>
-
-                        <View style={{ marginTop: 15 }}>
-
-                            <FlatList
-                                ListHeaderComponent={
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 10, marginTop: 10 }}>
-                                        <Text style={{ fontSize: 20, fontWeight: '800', color: '#2d3436' }}>
-                                            Sách thịnh hành
-                                        </Text>
-                                    </View>
-                                }
-                                data={trendBooks}
-                                keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => <BookListItem book={item} />}
-                                onRefresh={loadTrendBooks}
-                                refreshing={loading}
-                                alwaysBounceVertical={false}
-                                bounces={false}
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={{ paddingHorizontal: 10 }}
-                                scrollEnabled={false}
-                            />
-                        </View>
-
-                        <FlatList
-                            data={categories}
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item }) => (
-                                <ChipItem
-                                    label={item.name}
-                                    onPress={() => setCateId(item.id)}
-                                    isSelected={cateId === item.id}
-                                />
-                            )}
-                            horizontal={true}
-                            alwaysBounceVertical={false}
-                            bounces={false}
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 15 }}
-                        />
-
-                        <FlatList
-                            data={books}
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item }) => <BookCardItem book={item} />}
-                            onRefresh={loadBooks}
-                            numColumns={2}
-                            refreshing={loading}
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }}
-                            scrollEnabled={false} // Phải tắt scroll vì đã nằm trong ScrollView
-                        />
-                    {/* </View> */}
-                </ScrollView>
+                    }
+                />
             ) : (
                 <View style={{ paddingHorizontal: 10 }}>
                     <Text variant="titleLarge" style={{ fontWeight: '700', marginBottom: 6 }}>

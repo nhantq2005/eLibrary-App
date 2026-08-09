@@ -20,6 +20,10 @@ export const endpoints = {
     
     // CATEGORY
     'categories': '/categories',
+    // AUTHOR
+    'authors': '/authors',
+    // TAG
+    'tags': '/tags',
     // PAYMENT
     'payments': '/payments',
     // REVIEWS
@@ -28,9 +32,11 @@ export const endpoints = {
     // BORROW
     'borrow':'/secure/borrows',
     'get-borrow':'/secure/borrows',
+    'update-borrow-status': (borrowId) => `/secure/borrows/${borrowId}/status`,
     //BUY
     'buy':'/secure/buy',
     'get-buy':'/secure/buy',
+    'update-buy-status': (buyId) => `/secure/buy/${buyId}/status`,
     // STATS
     'overdue-stats':'/stats/secure/overdue-documents',
     'category-stats':'/stats/secure/categories',
