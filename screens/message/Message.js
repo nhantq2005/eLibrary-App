@@ -7,14 +7,6 @@ const Message = ({ navigation, route }) => {
     const chat = route?.params?.chat || { name: 'Người dùng', isOnline: true };
     const [messageText, setMessageText] = useState('');
 
-    const messages = [
-        { id: '1', text: 'Chào thư viện, cho mình hỏi về thủ tục mượn sách ạ.', time: '10:20', isMe: false },
-        { id: '2', text: 'Chào bạn, bạn cần đăng ký thẻ thành viên trước nhé. Bạn đã có thẻ chưa?', time: '10:25', isMe: true },
-        { id: '3', text: 'Mình chưa có, mình có thể đăng ký online được không?', time: '10:26', isMe: false },
-        { id: '4', text: 'Được bạn nhé, bạn vào mục "Thêm thẻ" trên app để đăng ký.', time: '10:28', isMe: true },
-        { id: '5', text: 'Cảm ơn bạn nhiều!', time: '10:30', isMe: false },
-    ];
-
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* Header */}
@@ -25,7 +17,7 @@ const Message = ({ navigation, route }) => {
                 
                 <View style={styles.headerUserInfo}>
                     <View style={styles.avatarContainer}>
-                         <Image source={{ uri: chat.avatar || 'https://via.placeholder.com/40' }} style={styles.headerAvatar} />
+                         <Image source={{ uri: chat.avatar }} style={styles.headerAvatar} />
                          {chat.isOnline && <View style={styles.onlineIndicator} />}
                     </View>
                     <View>

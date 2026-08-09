@@ -47,11 +47,11 @@ const AppNavigation = () => {
                         component={EditBook}
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen
+                    {/* <Stack.Screen
                         name="Message"
                         component={Message}
                         options={{ headerShown: false }}
-                    />
+                    /> */}
                     <Stack.Screen
                         name="EditInfo"
                         component={EditInfo}
