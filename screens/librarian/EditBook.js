@@ -1,65 +1,135 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Switch, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Save, Image as ImageIcon } from 'lucide-react-native';
-import Apis from '../../utils/Apis';
+import { ArrowLeft, Save, Image as ImageIcon, FileIcon } from 'lucide-react-native';
+import Apis, { endpoints, authApis } from '../../utils/Apis';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DropDownPicker from 'react-native-dropdown-picker';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { ActivityIndicator } from 'react-native-paper';
 
 const EditBook = ({ navigation, route }) => {
-    // Determine if we are creating a new book or editing an existing one
-    const isNew = route?.params?.isNew ?? false;
+    const isNew = route?.params?.isNew ?? true;
     const bookData = route?.params?.book ?? null;
-    const [open, setOpen] = useState(false);
-    const [title, setTitle] = useState(bookData?.title || '');
-    const [author, setAuthor] = useState(bookData?.author || '');
-    const [category, setCategory] = useState(bookData?.category || '');
-    const [quantity, setQuantity] = useState(bookData?.quantity?.toString() || '');
-    const [description, setDescription] = useState(bookData?.description || '');
 
+    const [openCategory, setOpenCategory] = useState(false);
+    const [openAuthors, setOpenAuthors] = useState(false);
+    const [openTags, setOpenTags] = useState(false);
+    const [fileUri, setFileUri] = useState('');
+    const [imageUri, setImageUri] = useState('');
+    const [loading, setLoading] = useState(false);
     const [staticData, setStaticData] = useState({
         categories: [],
         authors: [],
         tags: []
     });
+    const [book, setBook] = useState(bookData || {});
 
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        publishYear: new Date().getFullYear(),
-        price: 0,
-        quantity: 1,
-        isPremium: false,
-        categoryId: '',
-        authorIds: [],
-        tagIds: []
-    });
+    // Helpers for dropdown state
+    const handleDropdownChange = (field) => (callback) => {
+        setBook(prev => {
+            const currentValue = prev[field] || (field === 'categoryId' ? null : []);
+            return {
+                ...prev,
+                [field]: typeof callback === 'function' ? callback(currentValue) : callback
+            };
+        });
+    };
+    const bookInfos = [
+        {
+            field: 'title',
+            placeholder: 'Nhập tiêu đề tài liệu',
+            icon: 'book',
+        },
+        {
+            field: 'description',
+            placeholder: 'Nhập mô tả tài liệu',
+            icon: 'file-text',
+        },
+        {
+            field: 'publishYear',
+            placeholder: 'Năm xuất bản (VD: 2023)',
+            icon: 'calendar',
+        },
+        {
+            field: 'quantity',
+            placeholder: 'Số lượng (VD: 10)',
+            icon: 'layers',
+        },
+        {
+            field: 'isPremium',
+            placeholder: 'Premium',
+            icon: 'star',
+        },
+        {
+            field: 'price',
+            placeholder: 'Giá (VD: 100.00)',
+            icon: 'dollar-sign',
+        },
+        {
+            field: 'categoryId',
+            placeholder: 'Chọn thể loại...',
+            icon: 'tag',
+        },
+        {
+            field: 'authorIds',
+            placeholder: 'Chọn tác giả...',
+            icon: 'user',
+        },
+        {
+            field: 'tagIds',
+            placeholder: 'Chọn nhãn...',
+            icon: 'hash',
+        }
+    ]
 
-    const validate = () => {
-        if (!title.trim()) {
-            alert('Tên sách không được để trống');
-            return false;
+    const pickFile = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: '*/*',
+            });
+            if (!result.canceled) {
+                setFileUri(result.assets[0].uri);
+            } else {
+                console.log('Người dùng đã hủy chọn tệp.');
+            }
+        } catch (err) {
+            console.error('Lỗi khi chọn tệp:', err);
         }
-        if (!author.trim()) {
-            alert('Tên tác giả không được để trống');
-            return false;
+    };
+
+    const pickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+            });
+
+            if (!result.canceled) {
+                setImageUri(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Lỗi khi chọn ảnh:', error);
         }
-        if (!category.trim()) {
-            alert('Thể loại không được để trống');
-            return false;
-        }
-        if (!quantity.trim() || isNaN(quantity) || parseInt(quantity) <= 0) {
-            alert('Số lượng phải là một số nguyên dương');
-            return false;
-        }
-        return true;
-    }
+    };
+
+
+    useEffect(() => {
+        loadStaticData();
+    }, []);
 
     const loadStaticData = async () => {
         try {
-            const resCategories = await Apis.get(endpoints['categories']).catch(() => ({ data: [] }));
-            const resAuthors = await Apis.get(endpoints['authors']).catch(() => ({ data: [] }));
-            const resTags = await Apis.get(endpoints['tags']).catch(() => ({ data: [] }));
-            
+            const resCategories = await Apis.get(endpoints['categories'])
+            console.log('Categories loaded:', resCategories.data);
+            const resAuthors = await Apis.get(endpoints['authors'])
+            console.log('Authors loaded:', resAuthors.data);
+            const resTags = await Apis.get(endpoints['tags'])
+            console.log('Tags loaded:', resTags.data);
+
             setStaticData({
                 categories: resCategories.data || [],
                 authors: resAuthors.data || [],
@@ -70,113 +140,215 @@ const EditBook = ({ navigation, route }) => {
         }
     }
 
-    const saveBook = async () => {
+    const validate = () => {
+        for (const info of bookInfos) {
+            if (!book[info.field]?.toString().trim()) {
+                Alert.alert('Lỗi nhập liệu', `${info.placeholder} không được để trống`);
+                return false;
+            }
+        }
+        return true;
     }
+
+    const saveBook = async () => {
+        try {
+            setLoading(true);
+            const token = await AsyncStorage.getItem('token');
+
+            const formData = new FormData();
+            formData.append('title', book.title);
+            formData.append('description', book.description);
+            formData.append('publishYear', parseInt(book.publishYear) || new Date().getFullYear());
+            formData.append('price', parseFloat(book.price) || 0);
+            formData.append('quantity', parseInt(book.quantity));
+            formData.append('isPremium', book.isPremium ? 'true' : 'false');
+            formData.append('categoryId', book.categoryId);
+            formData.append('authorIds', book.authorIds.join(','));
+            formData.append('tagIds', book.tagIds.join(','));
+
+            if (imageUri) {
+                formData.append('image', {
+                    uri: imageUri,
+                    name: imageUri.split('/').pop() || 'image.jpg',
+                    type: 'image/jpeg'
+                });
+            }
+
+            if (fileUri) {
+                formData.append('file', {
+                    uri: fileUri,
+                    name: fileUri.split('/').pop() || 'file.pdf',
+                    type: 'application/octet-stream'
+                });
+            }
+
+            console.log('Saving book with FormData...');
+            const res = await authApis(token).post(endpoints['add-document'], formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            console.log('Book saved successfully:', res.data);
+            Alert.alert('Thành công', 'Sách đã được lưu thành công');
+            navigation.goBack();
+        } catch (error) {
+            console.error('Chi tiết lỗi:', error.response?.data);
+            console.error('Lỗi khi lưu sách:', error);
+            Alert.alert('Lỗi', 'Có lỗi xảy ra khi lưu sách');
+        } finally {
+            setLoading(false);
+        }
+    }
+
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <ArrowLeft size={24} color="#212529" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{isNew ? 'Thêm sách mới' : 'Chỉnh sửa sách'}</Text>
-
                 <View style={{ width: 24 }} />
             </View>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}>
+
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    {/* Image Upload Placeholder */}
-                    <View style={styles.imageUploadContainer}>
-                        <View style={styles.imagePlaceholder}>
-                            <ImageIcon size={40} color="#ADB5BD" />
-                            <Text style={styles.uploadText}>Tải ảnh lên</Text>
-                        </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 20 }}>
+                        <TouchableOpacity style={styles.imageUploadContainer} onPress={pickImage}>
+                            <View style={styles.imagePlaceholder}>
+                                {imageUri ? (
+                                    <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%', borderRadius: 12 }} />
+                                ) : (
+                                    <>
+                                        <ImageIcon size={40} color="#ADB5BD" />
+                                        <Text style={styles.uploadText}>Tải ảnh lên</Text>
+                                    </>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.imageUploadContainer} onPress={pickFile}>
+                            <View style={styles.imagePlaceholder}>
+                                {fileUri ? (
+                                    <>
+                                        <FileIcon size={40} color="#1976D2" />
+                                        <Text style={[styles.uploadText, { color: '#1976D2' }]}>Đã chọn tệp</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileIcon size={40} color="#ADB5BD" />
+                                        <Text style={styles.uploadText}>Tải tệp lên</Text>
+                                    </>
+                                )}
+                            </View>
+                        </TouchableOpacity>
                     </View>
 
-                    {/* Form Fields */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Tên sách <Text style={styles.required}>*</Text></Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nhập tên sách"
-                            value={title}
-                            onChangeText={setTitle}
+                    {bookInfos.filter(info => !['categoryId', 'authorIds', 'tagIds'].includes(info.field)).map(info => (
+                        <View key={info.field} style={styles.formGroup}>
+                            <Text style={styles.label}>{info.placeholder} {['title', 'description'].includes(info.field) && <Text style={styles.required}>*</Text>}</Text>
+                            {info.field === 'description' ? (
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder={info.placeholder}
+                                    value={book[info.field] || ''}
+                                    onChangeText={(text) => setBook(prev => ({ ...prev, [info.field]: text }))}
+                                    multiline
+                                />
+                            ) : info.field === 'isPremium' ? (
+                                <Switch
+                                    value={book.isPremium || false}
+                                    onValueChange={(value) => setBook(prev => ({ ...prev, isPremium: value }))}
+                                />
+                            ) : (
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder={info.placeholder}
+                                    value={book[info.field]?.toString() || ''}
+                                    onChangeText={(text) => setBook(prev => ({ ...prev, [info.field]: text }))}
+                                    keyboardType={['publishYear', 'price', 'quantity'].includes(info.field) ? 'numeric' : 'default'}
+                                />
+                            )}
+                        </View>
+                    ))}
+
+                    <View style={[styles.formGroup, { zIndex: openCategory ? 5000 : 3000 }]}>
+                        <Text style={styles.label}>Thể loại (Category) <Text style={styles.required}>*</Text></Text>
+                        <DropDownPicker
+                            open={openCategory}
+                            value={book.categoryId || null}
+                            items={staticData.categories.map(cat => ({ label: cat.name, value: cat.id }))}
+                            setOpen={setOpenCategory}
+                            onOpen={() => {
+                                setOpenAuthors(false);
+                                setOpenTags(false);
+                            }}
+                            setValue={handleDropdownChange('categoryId')}
+                            zIndex={3000}
+                            zIndexInverse={1000}
+                            placeholder="Chọn thể loại..."
+                            style={styles.dropdown}
                         />
                     </View>
 
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Tác giả <Text style={styles.required}>*</Text></Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nhập tên tác giả"
-                            value={author}
-                            onChangeText={setAuthor}
+                    <View style={[styles.formGroup, { zIndex: openAuthors ? 5000 : 2000 }]}>
+                        <Text style={styles.label}>Tác giả (Authors)</Text>
+                        <DropDownPicker
+                            multiple={true}
+                            min={0}
+                            open={openAuthors}
+                            value={book.authorIds || []}
+                            items={staticData.authors.map(author => ({ label: author.name, value: author.id }))}
+                            setOpen={setOpenAuthors}
+                            onOpen={() => {
+                                setOpenCategory(false);
+                                setOpenTags(false);
+                            }}
+                            setValue={handleDropdownChange('authorIds')}
+                            zIndex={2000}
+                            zIndexInverse={2000}
+                            placeholder="Chọn tác giả..."
+                            style={styles.dropdown}
+                            mode="BADGE"
                         />
                     </View>
 
-                    <View style={styles.rowGroup}>
-                        <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
-                            <Text style={styles.label}>Thể loại <Text style={styles.required}>*</Text></Text>
-                            {/* <TextInput
-                                style={styles.input}
-                                placeholder="VD: CNTT"
-                                value={category}
-                                onChangeText={setCategory}
-                            /> */}
-                            <DropDownPicker
-                                open={open}
-                                value={category}
-                                items={staticData.categories.map(cat => ({ label: cat.name, value: cat.id }))}
-                                setOpen={setOpen}
-                                setValue={setCategory}
-                                zIndex={1000}
-                                placeholder="Chọn thể loại..."
-                            />
-                        </View>
-
-
-                        <View style={[styles.formGroup, { flex: 1 }]}>
-                            <Text style={styles.label}>Số lượng <Text style={styles.required}>*</Text></Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="0"
-                                keyboardType="numeric"
-                                value={quantity}
-                                onChangeText={setQuantity}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Mô tả</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            placeholder="Nhập mô tả sách..."
-                            multiline
-                            numberOfLines={4}
-                            textAlignVertical="top"
-                            value={description}
-                            onChangeText={setDescription}
+                    <View style={[styles.formGroup, { zIndex: openTags ? 5000 : 1000 }]}>
+                        <Text style={styles.label}>Nhãn (Tags)</Text>
+                        <DropDownPicker
+                            multiple={true}
+                            min={0}
+                            open={openTags}
+                            value={book.tagIds || []}
+                            items={staticData.tags.map(tag => ({ label: tag.name, value: tag.id }))}
+                            setOpen={setOpenTags}
+                            onOpen={() => {
+                                setOpenCategory(false);
+                                setOpenAuthors(false);
+                            }}
+                            setValue={handleDropdownChange('tagIds')}
+                            zIndex={1000}
+                            zIndexInverse={3000}
+                            placeholder="Chọn nhãn..."
+                            style={styles.dropdown}
+                            mode="BADGE"
                         />
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 
-
-            {/* Bottom Action */}
             <View style={styles.bottomBar}>
                 <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
                     <Text style={styles.cancelButtonText}>Hủy</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton}>
-                    <Save size={20} color="#FFFFFF" style={styles.saveIcon} />
+                <TouchableOpacity style={styles.saveButton} onPress={saveBook} disabled={loading}>
+                    {loading ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                        <Save size={20} color="#FFFFFF" style={styles.saveIcon} />
+                    )}
                     <Text style={styles.saveButtonText}>Lưu thông tin</Text>
                 </TouchableOpacity>
             </View>
-
         </SafeAreaView>
     );
 };
@@ -255,6 +427,11 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         fontSize: 15,
         color: '#212529',
+    },
+    dropdown: {
+        backgroundColor: '#FFFFFF',
+        borderColor: '#DEE2E6',
+        borderRadius: 10,
     },
     textArea: {
         height: 100,
